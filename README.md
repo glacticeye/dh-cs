@@ -1,4 +1,4 @@
-# Next.js with Supabase Google Authentication
+🔐 Supabase Auth + Google Sign-In Boilerplate for Next.js
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-15.3.0-black)
@@ -28,8 +28,8 @@ Before you begin, ensure you have:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/shsfwork/supabase-nextjs-google-auth.git
-cd supabase-nextjs-google-auth
+git clone https://github.com/shsfwork/supabase-auth-nextjs-google-boilerplate.git
+cd supabase-auth-nextjs-google-boilerplate
 ```
 
 ### 2. Install dependencies

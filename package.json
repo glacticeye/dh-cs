@@ -1,5 +1,5 @@
 {
-  "name": "supabase-nextjs-google-auth",
+  "name": "supabase-auth-nextjs-google-boilerplate",
   "version": "0.1.0",
   "private": true,
   "scripts": {
