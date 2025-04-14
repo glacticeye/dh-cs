@@ -1,4 +1,4 @@
-🔐 Supabase Auth + Google Sign-In Boilerplate for Next.js
+# 🔐 Supabase Auth + Google Sign-In Boilerplate for Next.js
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-15.3.0-black)
