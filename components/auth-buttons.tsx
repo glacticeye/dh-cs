@@ -12,7 +12,7 @@ import { ArrowRightIcon, LogOut } from "lucide-react";
 import useUser from "@/hooks/useUser";
 
 export default function AuthButton() {
-  const { user } = useUser();
+  const { user, loading } = useUser();
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -24,6 +24,8 @@ export default function AuthButton() {
     router.push(LOGIN_PATH);
     router.refresh();
   };
+
+  if (loading) return null;
 
   if (user) {
     return (
