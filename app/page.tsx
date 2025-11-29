@@ -1,10 +1,10 @@
-export default function HomePage() {
-  return (
-    <section className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold">Welcome home!</h1>
-      <p className="mt-2 text-muted-foreground">
-        This is the main landing page of our application.
-      </p>
-    </section>
-  );
+import createServerClient from '@/lib/supabase/server';
+import DaggerheartApp from '@/components/daggerheart-app';
+
+// This is a Server Component to fetch initial data
+export default async function Page() {
+  const supabase = await createServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  return <DaggerheartApp clientUser={session?.user || null} />;
 }

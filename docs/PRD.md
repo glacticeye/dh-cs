@@ -1,17 +1,19 @@
 # Product Requirement Document: Daggerheart Web Companion
 
-**Version:** 1.0  
-**Status:** Active / Phase 1 Complete  
-**Last Updated:** November 28, 2025
+**Version:** 1.2
+**Status:** Active / Phase 1 Refactoring
+**Last Updated:** November 29, 2025
 
 ---
 
 ## 1. Executive Summary
 
-The **Daggerheart Web Companion** is a digital character sheet application designed specifically for the *Daggerheart* tabletop roleplaying game. Unlike traditional digital sheets that resemble spreadsheets, this application prioritizes a **tactile, tabletop-first user experience**. It mimics the physical sensation of playing the game by visualizing mechanics through interactive cards, 3D dice rolling, and tangible tokens, while leveraging the convenience of digital automation for math and tracking.
+The **Daggerheart Web Companion** is a digital character sheet application designed specifically for the *Daggerheart* tabletop roleplaying game. Unlike traditional digital sheets that resemble spreadsheets, this application prioritizes a **tactile, tabletop-first user experience** optimized for **mobile devices**. It mimics the physical sensation of playing the game by visualizing mechanics through interactive cards, 3D dice rolling, and tangible tokens, while leveraging the convenience of digital automation for math and tracking, all accessible from the palm of your hand.
 
 ## 2. Product Philosophy
 
+*   **Mobile-First & Thumb-Driven:** The primary interface is the smartphone. Critical actions (rolling, flipping cards, marking stress) must be comfortably reachable with a thumb.
+*   **Battery Aware:** High-fidelity 3D visuals are used sparingly. The 3D engine (Three.js) only spins up during active rolling to preserve battery life during long sessions.
 *   **Tactile over Text:** Interactions should feel physical. Cards flip, dice roll, and tokens stack.
 *   **Visual Immersion:** The UI should reflect the fantasy aesthetic of the game, avoiding sterile data tables.
 *   **Player Agency:** Users should be able to customize their loadout with their own assets (homebrew cards, custom character art) easily.
@@ -19,8 +21,8 @@ The **Daggerheart Web Companion** is a digital character sheet application desig
 
 ## 3. Target Audience
 
-*   **Players of Daggerheart:** Looking for a streamlined way to manage their character during sessions without losing the "feel" of the game.
-*   **Game Masters (GMs):** Who need to quickly reference abilities or generate loot/adversaries (future scope).
+*   **Players of Daggerheart:** Looking for a streamlined way to manage their character during sessions directly from their phone, freeing up table space.
+*   **Game Masters (GMs):** Who need to quickly reference abilities or generate loot/adversaries on the fly without a laptop.
 *   **Homebrewers:** Users who want to integrate custom content into their digital play space.
 
 ## 4. Functional Requirements
@@ -41,7 +43,11 @@ The **Daggerheart Web Companion** is a digital character sheet application desig
 ### 4.2 Card System (The Playmat)
 *   **Loadout:**
     *   Visual display of active Domain Cards (max 5).
-    *   Cards are rendered as interactive 3D objects that can be flipped to reveal details.
+    *   **Thumbnails:** Cards appear as distinct, tappable thumbnails/icons to save screen space.
+    *   **Detail View:** Tapping a card expands it to full view for reading text, flipping, or marking tokens.
+*   **Card State:**
+    *   Tracking of **Action Tokens** placed on specific cards.
+    *   Visual indication of **Exhausted** or active states.
 *   **Vault:**
     *   Storage for inactive cards.
     *   Mechanism to swap cards between Vault and Loadout (paying Stress cost where applicable).
@@ -53,6 +59,10 @@ The **Daggerheart Web Companion** is a digital character sheet application desig
 *   **Duality Dice Engine:**
     *   Physics-based 3D rolling of two 12-sided dice (d12).
     *   Differentiation between "Hope" and "Fear" dice (e.g., color coding).
+*   **Transient Overlay:**
+    *   Dice do not occupy permanent screen real estate.
+    *   Pressing "Roll" triggers a full-screen transparent overlay where dice are thrown.
+    *   Overlay dismisses automatically or via tap after result is settled, leaving a compact "Result Bubble" in the UI.
 *   **Automated Resolution:**
     *   Calculation of total result (Stat + Hope Die + Fear Die).
     *   Determination of outcome: **Success with Hope**, **Success with Fear**, **Failure with Hope**, **Failure with Fear**, or **Critical Success**.
@@ -61,83 +71,107 @@ The **Daggerheart Web Companion** is a digital character sheet application desig
 ### 4.4 Data Management
 *   **SRD Integration:**
     *   Parsing engine to ingest Markdown files from the Daggerheart SRD.
-    *   Dynamic population of Class, Subclass, Heritage, and Domain data.
-*   **Persistence (Roadmap):**
-    *   Local Storage saving of character state.
-    *   Import/Export of character JSON files.
+    *   Dynamic population of Class, Subclass, Heritage, and Domain data into a structured `library_cards` database table.
+*   **Persistence:**
+    *   Supabase (PostgreSQL) for authoritative data.
+    *   **Optimistic Updates:** UI reflects changes instantly (marking HP, moving cards) without waiting for server confirmation.
 
 ## 5. Non-Functional Requirements
 
-*   **Performance:** Dice animations must be smooth (60fps target) on standard devices.
-*   **Responsiveness:** Layout must adapt to desktop, tablet, and mobile screens.
-*   **Accessibility:** High contrast text options; ARIA labels for screen readers where visual metaphors (dice/cards) are used.
+*   **Responsiveness:** **Mobile-First.** The application must be fully functional and performant on smartphone screens (portrait mode). Tablet and Desktop views are secondary/adaptive expansions of the mobile view.
+*   **Offline Tolerance:** The app must function transiently if the network drops (e.g., convention centers). State changes queue up and sync when the connection is restored.
+*   **Performance:** Dice animations must be smooth (60fps target). 3D Context is managed aggressively (created on roll, destroyed/paused on settle).
+*   **Accessibility:** High contrast text options; ARIA labels for screen readers where visual metaphors (dice/cards) are used; touch targets must be at least 44x44px.
 *   **Stack:**
-    *   **Frontend:** React, TypeScript, Vite.
+    *   **Frontend:** Next.js, React, TypeScript.
     *   **Styling:** Tailwind CSS.
     *   **3D:** Three.js / `@3d-dice/dice-box-threejs`.
     *   **Animation:** Framer Motion.
+    *   **Backend:** Supabase (Auth & DB).
 
 ## 6. User Interface (UI) Design
 
-### 6.1 Layout Structure
-*   **Header:** Character Name, Level, Class info, Gold.
-*   **Left Panel (Vitals):** Vertical stack of HP, Stress, Armor, and Stat buttons.
-*   **Center Stage (Playmat):** Horizontal scrollable area for Loadout cards.
-*   **Right Panel (Dice Tray):** Dedicated container for 3D dice physics and result readouts.
+### 6.1 Mobile Layout Structure (Primary)
+*   **Bottom Navigation Bar:** Primary navigation between views:
+    *   **Character:** Stats, Skills, Vitals summary.
+    *   **Playmat:** Active Cards (Loadout) and Vault access.
+    *   **Inventory:** Gold, Gear, Items.
+*   **Sticky Action Button (FAB):** A persistent "Roll" button that floats above the interface.
+*   **Transient Dice Overlay:** A full-screen layer that appears *only* during a roll animation.
+*   **Top Bar:** Character Name, Level, Compact Status.
+*   **Drawers/Modals:** Vitals adjustment, detailed card views, and settings should open in slide-up drawers (bottom sheets) to maintain context.
 
-### 6.2 Visual Style
+### 6.2 Desktop/Tablet Layout (Secondary)
+*   **Adaptive Layout:** The Bottom Navigation transforms into a Side Navigation or Header.
+*   **Expanded View:** "Playmat" and "Vitals" can exist side-by-side rather than on separate tabs.
+*   **Dice Tray:** Can be a permanent panel on the right side.
+
+### 6.3 Visual Style
 *   **Theme:** Dark mode default. Deep blues/purples (`dagger-dark`), accented with gold (`dagger-gold`) and semi-transparent panels (`dagger-panel`).
 *   **Typography:** Serif fonts (`Merriweather`) for headings to evoke fantasy literature; Sans-serif (`Inter`) for readability on small text.
 
 ## 7. Development Roadmap
 
 ### Phase 1: Core Foundation (Completed)
-*   [x] Project setup (Vite/React/Tailwind).
+*   [x] Project setup (Next.js/React/Tailwind).
 *   [x] SRD Data Parsing script.
 *   [x] Basic Character State Context.
 *   [x] 3D Dice Roller implementation.
 *   [x] Card Component with Flip animation.
 *   [x] Custom Image Upload for cards.
 
-### Phase 2: Builder & Persistence (Current Focus)
-*   [ ] **Character Builder Wizard:** Step-by-step creation flow (Class -> Heritage -> Stats -> Gear).
-*   [ ] **Data Persistence:** Auto-save to `localStorage`.
-*   [ ] **Inventory System:** Expanded inventory management beyond just gold.
-*   [ ] **Card Drag-and-Drop:** Organize Loadout via drag-and-drop interface.
+### Phase 2: Mobile Optimization & Persistence (Current Focus)
+*   [ ] **Schema Migration:** Implement Relational DB structure (Library vs. Character cards).
+*   [ ] **Optimistic UI Hooks:** Refactor state management for instant feedback.
+*   [ ] **Mobile Layout Refactor:** Implement Bottom Navigation and Bottom Sheet drawers.
+*   [ ] **Transient Dice:** Refactor 3D roller to be an overlay.
+*   [ ] **Character Builder Wizard:** Step-by-step creation flow optimized for small screens.
 
 ### Phase 3: Advanced Features (Future)
-*   [ ] **Multiplayer/P2P:** WebRTC connection to share rolls with a GM.
-*   [ ] **Compendium Browser:** Searchable database of all SRD spells/abilities within the app.
-*   [ ] **Mobile Optimization:** Dedicated mobile view with collapsible drawers for Vitals/Dice.
+*   [ ] **Multiplayer/P2P:** Real-time roll sharing with GM.
+*   [ ] **PWA Support:** Installable to home screen with offline capabilities.
 
-## 8. Data Schema
+## 8. Data Schema (Relational)
 
-### Character Object
-```json
-{
-  "id": "uuid",
-  "name": "String",
-  "level": "Number",
-  "class": "String",
-  "subclass": "String",
-  "stats": {
-    "agility": "Number",
-    "strength": "Number",
-    "finesse": "Number",
-    "instinct": "Number",
-    "presence": "Number",
-    "knowledge": "Number"
-  },
-  "vitals": {
-    "hp": "Number",
-    "currentHp": "Number",
-    "stress": "Number",
-    "currentStress": "Number",
-    "hope": "Number",
-    "fear": "Number"
-  },
-  "loadout": ["CardObject"],
-  "vault": ["CardObject"],
-  "inventory": ["ItemObject"]
-}
-```
+### Tables
+
+**`profiles`**
+*   `id` (UUID, PK): References `auth.users`.
+*   `username` (Text): Display name.
+*   `avatar_url` (Text).
+
+**`characters`**
+*   `id` (UUID, PK).
+*   `user_id` (UUID, FK): References `profiles.id`.
+*   `name` (Text).
+*   `level` (Int).
+*   `class_id` (Text).
+*   `subclass_id` (Text).
+*   `stats` (JSONB): `{ agility: 1, strength: 0, ... }`.
+*   `vitals` (JSONB): `{ hp: 6, stress: 2, armor_slots: [...] }`.
+*   `gold` (JSONB).
+*   `created_at` (Timestamp).
+
+**`library_cards`** (The SRD Content)
+*   `id` (Text, PK): e.g., "ability-bard-rally".
+*   `type` (Text): "ability", "spell", "domain", "subclass".
+*   `name` (Text).
+*   `text` (Text): Markdown content.
+*   `domain` (Text).
+*   `cost` (Text): e.g., "2 Stress".
+*   `tags` (Array).
+
+**`character_cards`** (The Join Table - Players' Cards)
+*   `id` (UUID, PK).
+*   `character_id` (UUID, FK): References `characters.id`.
+*   `card_id` (Text, FK): References `library_cards.id`.
+*   `location` (Text): "loadout" or "vault".
+*   `state` (JSONB): `{ tokens: 0, exhausted: false, custom_image_url: "..." }`.
+*   `order` (Int): For sorting in the UI.
+
+**`inventory_items`**
+*   `id` (UUID, PK).
+*   `character_id` (UUID, FK): References `characters.id`.
+*   `name` (Text).
+*   `description` (Text).
+*   `quantity` (Int).
