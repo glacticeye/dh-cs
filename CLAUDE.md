@@ -31,14 +31,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm install          # Install dependencies
 npm run dev          # Start dev server with Turbopack (http://localhost:3000)
-npm run build        # Production build
 npm run lint         # Run ESLint
+npm run build        # Production build
+```
+
+### Development Workflow
+**Always lint before building** for fastest feedback:
+```bash
+npm run lint         # 1. Lint first (fast, catches issues early)
+npm run build        # 2. Build second (slower, verifies compilation)
+```
+
+Or as a one-liner:
+```bash
+npm run lint && npm run build
 ```
 
 ### Lint Configuration
 - ESLint currently has several rules disabled (see `eslint.config.mjs:15-23`)
 - `@typescript-eslint/no-unused-vars`, `no-unused-vars`, and `@typescript-eslint/no-explicit-any` are temporarily off
 - **Before committing:** Lint and resolve ALL warnings and errors (per user's global instructions)
+- Linting is much faster than building, so always run it first to fail fast
 
 ### Database Setup (Supabase)
 1. **Schema:** Run content of `supabase/schema.sql` in the Supabase SQL Editor to create tables (`profiles`, `characters`, `library`, etc.) and RLS policies

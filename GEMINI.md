@@ -27,6 +27,18 @@ npm run dev
 ```
 Access the app at `http://localhost:3000`.
 
+### Development Workflow
+**Always lint before building** for fastest feedback:
+```bash
+npm run lint         # 1. Lint first (fast, catches issues early)
+npm run build        # 2. Build second (slower, verifies compilation)
+```
+
+Or as a one-liner:
+```bash
+npm run lint && npm run build
+```
+
 ### Database Setup (Supabase)
 1.  **Schema:** Run content of `supabase/schema.sql` in the Supabase SQL Editor to create tables (e.g., `profiles`, `character_cards`, `character_inventory`) and their respective RLS policies. Note that the `public.library` and `public.characters` tables' creation and their RLS policies are now handled by the seed data script.
 2.  **Seed Data:**

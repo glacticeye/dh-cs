@@ -75,7 +75,7 @@ export default function CreateCharacterPage() {
   // Initial trait assignment values as per Daggerheart rules
   const TRAIT_ASSIGNMENT_POOL = useMemo(() => [2, 1, 1, 0, 0, -1], []);
   const [availableTraitValues, setAvailableTraitValues] = useState<number[]>([]);
-  const [selectedTraitValue, setSelectedTraitValue] = useState<number | null>(null);
+  const [selectedTraitIndex, setSelectedTraitIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setAvailableTraitValues([...TRAIT_ASSIGNMENT_POOL]);
@@ -286,7 +286,7 @@ export default function CreateCharacterPage() {
         updatedAvailable.splice(valueIndex, 1); // Remove from available
         setAvailableTraitValues(updatedAvailable); // Update available values state
         handleStatChange(statName, val); // Assign to form data
-        setSelectedTraitValue(null); // Clear selection after assignment
+        setSelectedTraitIndex(null); // Clear selection after assignment
       } else if (!TRAIT_ASSIGNMENT_POOL.includes(val)) {
          setError(`Value ${val} is not a valid trait value.`);
       } else {
@@ -603,13 +603,13 @@ export default function CreateCharacterPage() {
                              type="button"
                              className={clsx(
                                "px-4 py-2 rounded-full cursor-pointer transition-all",
-                               selectedTraitValue === val
+                               selectedTraitIndex === index
                                  ? "bg-dagger-gold text-black ring-2 ring-dagger-gold ring-offset-2 ring-offset-dagger-dark scale-105 shadow-lg"
                                  : "bg-blue-600 text-white hover:bg-blue-500 active:scale-95"
                              )}
                              draggable
                              onDragStart={(e) => e.dataTransfer.setData("value", val.toString())}
-                             onClick={() => setSelectedTraitValue(val)}
+                             onClick={() => setSelectedTraitIndex(index)}
                         >
                             {val >= 0 ? `+${val}` : val}
                         </button>
@@ -630,7 +630,7 @@ export default function CreateCharacterPage() {
                           isAssigned
                             ? "bg-dagger-gold/10 border-dagger-gold shadow-md shadow-dagger-gold/20"
                             : "bg-black/20 border-white/5 hover:border-white/20",
-                          selectedTraitValue !== null && "cursor-pointer hover:scale-105 active:scale-95"
+                          selectedTraitIndex !== null && "cursor-pointer hover:scale-105 active:scale-95"
                         )}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => {
@@ -647,14 +647,15 @@ export default function CreateCharacterPage() {
                             updatedAvailable.splice(valueIndex, 1);
                             setAvailableTraitValues(updatedAvailable);
                             handleStatChange(stat as keyof CharacterFormData['stats'], droppedValue);
-                            setSelectedTraitValue(null);
+                            setSelectedTraitIndex(null);
                           } else {
                               setError("Trait value already assigned or invalid.");
                           }
                         }}
                         onClick={() => {
-                          if (selectedTraitValue !== null) {
-                            assignTraitValue(stat as keyof CharacterFormData['stats'], selectedTraitValue);
+                          if (selectedTraitIndex !== null) {
+                            const selectedValue = availableTraitValues[selectedTraitIndex];
+                            assignTraitValue(stat as keyof CharacterFormData['stats'], selectedValue);
                           }
                         }}
                       >
@@ -768,7 +769,7 @@ export default function CreateCharacterPage() {
       default:
         return null;
     }
-  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, isSubmitting, setError, selectedTraitValue]);
+  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, isSubmitting, setError, selectedTraitIndex]);
 
 
   return (
