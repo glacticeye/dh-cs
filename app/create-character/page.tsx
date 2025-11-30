@@ -74,12 +74,18 @@ export default function CreateCharacterPage() {
 
   // Initial trait assignment values as per Daggerheart rules
   const TRAIT_ASSIGNMENT_POOL = useMemo(() => [2, 1, 1, 0, 0, -1], []);
-  const [availableTraitValues, setAvailableTraitValues] = useState<number[]>([]);
+  // Display pool excludes zeros (user only assigns meaningful values)
+  const DISPLAY_TRAIT_POOL = useMemo(() => [2, 1, 1, -1], []);
   const [selectedTraitIndex, setSelectedTraitIndex] = useState<number | null>(null);
 
-  useEffect(() => {
-    setAvailableTraitValues([...TRAIT_ASSIGNMENT_POOL]);
-  }, [TRAIT_ASSIGNMENT_POOL]);
+  // Helper to check if a display trait value is currently assigned
+  const isTraitValueAssigned = useCallback((value: number): boolean => {
+    const stats = formData.stats || {};
+    const assignedValues = Object.values(stats);
+    const countInStats = assignedValues.filter(v => v === value).length;
+    const countInPool = DISPLAY_TRAIT_POOL.filter(v => v === value).length;
+    return countInStats >= countInPool;
+  }, [formData.stats, DISPLAY_TRAIT_POOL]);
 
 
   useEffect(() => {
@@ -265,35 +271,38 @@ export default function CreateCharacterPage() {
   }, []);
 
   const assignTraitValue = useCallback((statName: keyof CharacterFormData['stats'], value: number | '') => {
-    const currentStats = { ...formData.stats! };
-    // updatedAvailable must be 'let' as its value changes
-    const updatedAvailable = [...availableTraitValues]; // Changed to const
-
-    // Add back the old assigned value to the pool if it was a valid trait pool value
-    const oldAssignedValue = currentStats[statName];
-    if (oldAssignedValue !== undefined && oldAssignedValue !== null && TRAIT_ASSIGNMENT_POOL.includes(oldAssignedValue)) {
-      updatedAvailable.push(oldAssignedValue);
-    }
-
     if (value === '') { // Clear assignment
       setFormData(prev => ({ ...prev, stats: { ...prev.stats!, [statName]: 0 } }));
-      setAvailableTraitValues(updatedAvailable);
+      setSelectedTraitIndex(null);
     } else { // Assign new value
       const val = value as number;
-      // Check if the value is in the TRAIT_ASSIGNMENT_POOL and is currently available
-      const valueIndex = updatedAvailable.indexOf(val);
-      if (TRAIT_ASSIGNMENT_POOL.includes(val) && valueIndex > -1) {
-        updatedAvailable.splice(valueIndex, 1); // Remove from available
-        setAvailableTraitValues(updatedAvailable); // Update available values state
-        handleStatChange(statName, val); // Assign to form data
-        setSelectedTraitIndex(null); // Clear selection after assignment
-      } else if (!TRAIT_ASSIGNMENT_POOL.includes(val)) {
-         setError(`Value ${val} is not a valid trait value.`);
-      } else {
-        setError(`Value ${val} already assigned to another trait or not available in the pool.`);
+
+      // Check if valid value
+      if (!TRAIT_ASSIGNMENT_POOL.includes(val)) {
+        setError(`Value ${val} is not a valid trait value.`);
+        return;
       }
+
+      // Count how many times this value is already assigned
+      const currentStats = { ...formData.stats! };
+      const assignedCount = Object.entries(currentStats)
+        .filter(([key, v]) => key !== statName && v === val)
+        .length;
+
+      // Count how many times this value appears in the pool
+      const poolCount = TRAIT_ASSIGNMENT_POOL.filter(v => v === val).length;
+
+      // Allow assignment if not exceeding pool count
+      if (assignedCount >= poolCount) {
+        setError(`All ${val >= 0 ? '+' : ''}${val} values have been assigned. Clear one first.`);
+        return;
+      }
+
+      // Assign the value
+      handleStatChange(statName, val);
+      setSelectedTraitIndex(null);
     }
-  }, [formData.stats, availableTraitValues, handleStatChange, TRAIT_ASSIGNMENT_POOL]);
+  }, [formData.stats, handleStatChange, TRAIT_ASSIGNMENT_POOL]);
 
 
   const handleExperienceChange = useCallback((index: number, value: string) => {
@@ -588,32 +597,41 @@ export default function CreateCharacterPage() {
         );
         case 4: // Assign Traits
             const availableTraits = Object.entries(formData.stats || {});
+            // Count how many non-zero values still need to be assigned
+            const assignedNonZeroCount = Object.values(formData.stats || {}).filter(v => v !== 0).length;
+            const remainingCount = DISPLAY_TRAIT_POOL.length - assignedNonZeroCount;
+
             return (
               <div className="space-y-4">
                 <h2 className="text-xl font-bold font-serif flex items-center gap-2"><HandMetal size={20}/> Step 4: Assign Traits</h2>
                 <p className="text-sm text-gray-400">
-                  <span className="hidden md:inline">Drag and drop or click to select, then click a stat.</span>
+                  <span className="hidden md:inline">Click a value to select, then click a stat to assign.</span>
                   <span className="md:hidden">Tap a value, then tap a stat to assign.</span>
-                  {' '}Remaining: ({availableTraitValues.length})
+                  {' '}Remaining: {remainingCount}
                 </p>
                 <div className="flex justify-center flex-wrap gap-2 mb-4">
-                    {availableTraitValues.map((val, index) => (
+                    {DISPLAY_TRAIT_POOL.map((val, index) => {
+                      const isAssigned = isTraitValueAssigned(val);
+                      const isSelected = selectedTraitIndex === index;
+
+                      return (
                         <button
                              key={index}
                              type="button"
                              className={clsx(
                                "px-4 py-2 rounded-full cursor-pointer transition-all",
-                               selectedTraitIndex === index
+                               isSelected
                                  ? "bg-dagger-gold text-black ring-2 ring-dagger-gold ring-offset-2 ring-offset-dagger-dark scale-105 shadow-lg"
+                                 : isAssigned
+                                 ? "bg-gray-600 text-gray-400 hover:bg-gray-500"
                                  : "bg-blue-600 text-white hover:bg-blue-500 active:scale-95"
                              )}
-                             draggable
-                             onDragStart={(e) => e.dataTransfer.setData("value", val.toString())}
                              onClick={() => setSelectedTraitIndex(index)}
                         >
                             {val >= 0 ? `+${val}` : val}
                         </button>
-                    ))}
+                      );
+                    })}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -632,29 +650,9 @@ export default function CreateCharacterPage() {
                             : "bg-black/20 border-white/5 hover:border-white/20",
                           selectedTraitIndex !== null && "cursor-pointer hover:scale-105 active:scale-95"
                         )}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const droppedValue = parseInt(e.dataTransfer.getData("value"));
-                          const oldAssignedValue = formData.stats![stat as keyof CharacterFormData['stats']];
-                          const updatedAvailable = [...availableTraitValues];
-                          if (oldAssignedValue !== 0 && oldAssignedValue !== undefined && oldAssignedValue !== null && TRAIT_ASSIGNMENT_POOL.includes(oldAssignedValue)) {
-                            updatedAvailable.push(oldAssignedValue);
-                          }
-
-                          const valueIndex = updatedAvailable.indexOf(droppedValue);
-                          if (valueIndex > -1) {
-                            updatedAvailable.splice(valueIndex, 1);
-                            setAvailableTraitValues(updatedAvailable);
-                            handleStatChange(stat as keyof CharacterFormData['stats'], droppedValue);
-                            setSelectedTraitIndex(null);
-                          } else {
-                              setError("Trait value already assigned or invalid.");
-                          }
-                        }}
                         onClick={() => {
                           if (selectedTraitIndex !== null) {
-                            const selectedValue = availableTraitValues[selectedTraitIndex];
+                            const selectedValue = DISPLAY_TRAIT_POOL[selectedTraitIndex];
                             assignTraitValue(stat as keyof CharacterFormData['stats'], selectedValue);
                           }
                         }}
@@ -769,7 +767,7 @@ export default function CreateCharacterPage() {
       default:
         return null;
     }
-  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, isSubmitting, setError, selectedTraitIndex]);
+  }, [currentStep, formData, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, DISPLAY_TRAIT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, isSubmitting, setError, selectedTraitIndex, isTraitValueAssigned]);
 
 
   return (
