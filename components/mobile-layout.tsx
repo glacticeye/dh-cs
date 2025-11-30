@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useCharacterStore } from '@/store/character-store';
-import { User, Layers, Backpack, Dices } from 'lucide-react';
+import { User, Layers, Backpack, Dices, Swords } from 'lucide-react';
 import DiceOverlay from './dice-overlay';
 import clsx from 'clsx';
 
@@ -40,6 +40,12 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
             onClick={() => setActiveTab('character')}
             icon={User} 
             label="Character" 
+          />
+          <NavButton 
+            active={activeTab === 'combat'} 
+            onClick={() => setActiveTab('combat')}
+            icon={Swords} 
+            label="Combat" 
           />
           <NavButton 
             active={activeTab === 'playmat'} 

@@ -226,6 +226,36 @@ function processClasses() {
           }
         }
 
+        // --- Extract Class Feature ---
+        let classFeature = { name: '', description: '' };
+        const featureHeaderIndex = lines.findIndex(l => l.match(/^##\s*CLASS FEATURE/i));
+        
+        if (featureHeaderIndex !== -1) {
+            let featureText = [];
+            let i = featureHeaderIndex + 1;
+            // Capture text until the next header (##) or end of file
+            while (i < lines.length && !lines[i].startsWith('## ')) {
+                if (lines[i].trim() !== '') {
+                    featureText.push(lines[i].trim());
+                }
+                i++;
+            }
+            
+            const rawFeatureText = featureText.join('\n');
+            
+            // Try to extract bolded name: ***Rally:*** or **Rally:**
+            const nameMatch = rawFeatureText.match(/^\*\*\*(.*?):\*\*\*\s*(.*)/s) || rawFeatureText.match(/^\*\*(.*?):\*\*\s*(.*)/s);
+            
+            if (nameMatch) {
+                classFeature.name = nameMatch[1].trim();
+                classFeature.description = nameMatch[2].trim();
+            } else {
+                // Fallback if no standard format found
+                classFeature.name = 'Class Feature';
+                classFeature.description = rawFeatureText;
+            }
+        }
+
         const subclassSectionIndex = lines.findIndex(line => line.includes('SUBCLASSES'));
         if (subclassSectionIndex !== -1) {
             let subclassLine = '';
@@ -280,7 +310,8 @@ function processClasses() {
           starting_stress: startingStress,
           starting_evasion: startingEvasion,
           starting_armor_score: startingArmorScore,
-          class_items_raw: classItemsLine ? classItemsLine.split('CLASS ITEMS:')[1].trim() : ''
+          class_items_raw: classItemsLine ? classItemsLine.split('CLASS ITEMS:')[1].trim() : '',
+          class_feature: classFeature
         };
 
         sqlOutput.push(createInsert(classId, 'class', title, null, null, data));

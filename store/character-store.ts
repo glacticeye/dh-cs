@@ -60,6 +60,9 @@ export interface Character {
   };
   hope: number;
   fear: number;
+  evasion: number;
+  proficiency: number;
+  experiences: string[];
   gold: {
     handfuls: number;
     bags: number;
@@ -85,15 +88,17 @@ interface CharacterState {
   isLoading: boolean;
   user: User | null;
   
-  activeTab: 'character' | 'playmat' | 'inventory';
+  activeTab: 'character' | 'playmat' | 'inventory' | 'combat';
   isDiceOverlayOpen: boolean;
+  activeRoll: { label: string; modifier: number } | null;
   lastRollResult: RollResult | null;
   
   setCharacter: (char: Character | null) => void;
   setUser: (user: User | null) => void;
-  setActiveTab: (tab: 'character' | 'playmat' | 'inventory') => void;
+  setActiveTab: (tab: 'character' | 'playmat' | 'inventory' | 'combat') => void;
   openDiceOverlay: () => void;
   closeDiceOverlay: () => void;
+  prepareRoll: (label: string, modifier: number) => void;
   setLastRollResult: (result: RollResult) => void;
   fetchCharacter: (userId: string) => Promise<void>;
   fetchUser: () => Promise<void>; // Add fetchUser to interface
@@ -108,13 +113,15 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
   
   activeTab: 'character',
   isDiceOverlayOpen: false,
+  activeRoll: null,
   lastRollResult: null,
   
   setCharacter: (char) => set({ character: char, isLoading: false }),
   setUser: (user) => set({ user }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   openDiceOverlay: () => set({ isDiceOverlayOpen: true }),
-  closeDiceOverlay: () => set({ isDiceOverlayOpen: false }),
+  closeDiceOverlay: () => set({ isDiceOverlayOpen: false, activeRoll: null }), // Clear active roll on close
+  prepareRoll: (label, modifier) => set({ isDiceOverlayOpen: true, activeRoll: { label, modifier } }),
   setLastRollResult: (result) => set({ lastRollResult: result }),
   
   fetchUser: async () => {

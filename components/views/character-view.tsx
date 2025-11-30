@@ -116,12 +116,12 @@ function VitalCard({ label, current, max, color, icon: Icon, onIncrement, onDecr
 
 // Removed openDiceOverlay prop to StatButton, let it call store directly
 function StatButton({ label, value }: { label: string, value: number }) {
-  const { openDiceOverlay } = useCharacterStore(); // Call from store directly
+  const { prepareRoll } = useCharacterStore(); // Call from store directly
   
   return (
     <button 
       type="button"
-      onClick={openDiceOverlay}
+      onClick={() => prepareRoll(label, value)}
       className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg p-3 flex items-center justify-between transition-colors group"
     >
       <span className="capitalize font-medium text-gray-300 group-hover:text-white">{label}</span>

@@ -4,6 +4,7 @@ import MobileLayout from '@/components/mobile-layout';
 import CharacterView from '@/components/views/character-view';
 import PlaymatView from '@/components/views/playmat-view';
 import InventoryView from '@/components/views/inventory-view';
+import CombatView from '@/components/views/combat-view';
 import { useCharacterStore } from '@/store/character-store';
 import AuthButton from '@/components/auth-buttons';
 import { useEffect, useState } from 'react';
@@ -72,6 +73,7 @@ export default function DaggerheartApp({ clientUser }: { clientUser: User | null
   return (
     <MobileLayout>
       {activeTab === 'character' && <CharacterView />}
+      {activeTab === 'combat' && <CombatView />}
       {activeTab === 'playmat' && <PlaymatView />}
       {activeTab === 'inventory' && <InventoryView />}
     </MobileLayout>

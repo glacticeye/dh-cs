@@ -23,6 +23,7 @@ interface CharacterFormData {
     presence: number;
     knowledge: number;
   };
+  experiences: [string, string];
 }
 
 // Minimal Library Item type for dropdowns and lookup
@@ -43,8 +44,9 @@ export default function CreateCharacterPage() {
     name: '',
     image_url: '',
     stats: { agility: 0, strength: 0, finesse: 0, instinct: 0, presence: 0, knowledge: 0 },
+    experiences: ['', '']
   });
-  const [calculatedVitals, setCalculatedVitals] = useState({ hp: 0, stress: 0, armor: 0 });
+  const [calculatedVitals, setCalculatedVitals] = useState({ hp: 0, stress: 0, armor: 0, evasion: 10 });
   const [startingItemsAndCards, setStartingItemsAndCards] = useState<{cards: string[], weapons: string[], armor: string[], misc: string[], gold: {handfuls: number, bags: number, chests: number}}>({
     cards: [], weapons: [], armor: [], misc: [], gold: {handfuls: 0, bags: 0, chests: 0}
   });
@@ -290,6 +292,12 @@ export default function CreateCharacterPage() {
   }, [formData.stats, availableTraitValues, handleStatChange, TRAIT_ASSIGNMENT_POOL]);
 
 
+  const handleExperienceChange = (index: number, value: string) => {
+    const newExperiences = [...(formData.experiences || ['', ''])] as [string, string];
+    newExperiences[index] = value;
+    setFormData(prev => ({ ...prev, experiences: newExperiences }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -297,6 +305,11 @@ export default function CreateCharacterPage() {
     // Final validation
     if (!formData.name || !formData.ancestry_id || !formData.community_id || !formData.class_id || !formData.subclass_id) {
       setError("Please fill in all required fields.");
+      return;
+    }
+    
+    if (!formData.experiences || formData.experiences.some(exp => !exp.trim())) {
+      setError("Please provide two starting experiences.");
       return;
     }
     
@@ -351,6 +364,9 @@ export default function CreateCharacterPage() {
       },
       hope: 2, // Starting hope is always 2
       fear: 0,
+      evasion: calculatedVitals.evasion,
+      proficiency: 1,
+      experiences: formData.experiences as string[],
       gold: startingItemsAndCards.gold,
       image_url: formData.image_url,
     };
@@ -599,7 +615,38 @@ export default function CreateCharacterPage() {
                 </div>
               </div>
             );
-        case 5: // Confirm & Create
+        case 5: // Experiences
+            return (
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold font-serif flex items-center gap-2"><Sparkle size={20}/> Step 5: Experiences</h2>
+                <p className="text-sm text-gray-400">Create two experiences that reflect your character&apos;s background. E.g., &quot;Expert Tracker&quot;, &quot;Raised by Wolves&quot;, &quot;Disgraced Noble&quot;. (+2 bonus when relevant)</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400">Experience 1 (+2)</label>
+                  <input 
+                    type="text" 
+                    value={formData.experiences?.[0] || ''} 
+                    onChange={(e) => handleExperienceChange(0, e.target.value)}
+                    placeholder="e.g., Former Guard Captain"
+                    className="w-full p-2 rounded bg-black/20 border border-white/10 mt-1 focus:ring-dagger-gold focus:border-dagger-gold" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400">Experience 2 (+2)</label>
+                  <input 
+                    type="text" 
+                    value={formData.experiences?.[1] || ''} 
+                    onChange={(e) => handleExperienceChange(1, e.target.value)}
+                    placeholder="e.g., Trust No One"
+                    className="w-full p-2 rounded bg-black/20 border border-white/10 mt-1 focus:ring-dagger-gold focus:border-dagger-gold" 
+                  />
+                </div>
+                <div className="flex justify-between mt-4">
+                  <button type="button" onClick={() => setCurrentStep(4)} className="px-4 py-2 bg-white/10 text-white rounded-full hover:bg-white/20">Back</button>
+                  <button type="button" onClick={() => setCurrentStep(6)} className="px-4 py-2 bg-dagger-gold text-black font-bold rounded-full shadow-md hover:scale-[1.02] transition-transform">Next</button>
+                </div>
+              </div>
+            );
+        case 6: // Confirm & Create
             const currentClassSummary = formData.class_id ? libraryData.classes.find(c => c.id === formData.class_id) : null;
             const currentSubclassSummary = formData.subclass_id ? libraryData.subclasses.find(s => s.id === formData.subclass_id) : null;
             const currentAncestrySummary = formData.ancestry_id ? libraryData.ancestries.find(a => a.id === formData.ancestry_id) : null;
@@ -607,7 +654,7 @@ export default function CreateCharacterPage() {
 
             return (
               <div className="space-y-4">
-                <h2 className="text-xl font-bold font-serif flex items-center gap-2"><Shield size={20}/> Step 5: Confirm & Create</h2>
+                <h2 className="text-xl font-bold font-serif flex items-center gap-2"><Shield size={20}/> Step 6: Confirm & Create</h2>
                 <div className="bg-black/20 p-4 rounded-lg border border-white/5 space-y-3">
                   <p><strong>Name:</strong> {formData.name}</p>
                   <p><strong>Ancestry:</strong> {currentAncestrySummary?.name || 'N/A'}</p>
@@ -615,6 +662,8 @@ export default function CreateCharacterPage() {
                   <p><strong>Class:</strong> {currentClassSummary?.name || 'N/A'}</p>
                   <p><strong>Subclass:</strong> {currentSubclassSummary?.name || 'N/A'}</p>
                   <p><strong>Calculated Vitals:</strong> HP: {calculatedVitals.hp}, Stress: {calculatedVitals.stress}, Armor: {calculatedVitals.armor}</p>
+                  <p><strong>Evasion:</strong> {calculatedVitals.evasion}</p>
+                  <p><strong>Experiences:</strong> {formData.experiences?.join(', ')}</p>
                   <p className="flex items-center gap-1">
                     <Coins size={16} /> <strong>Starting Gold:</strong> {startingItemsAndCards.gold.handfuls}h, {startingItemsAndCards.gold.bags}b, {startingItemsAndCards.gold.chests}c
                   </p>
@@ -635,7 +684,7 @@ export default function CreateCharacterPage() {
                   </ul>
                 </div>
                 <div className="flex justify-between mt-4">
-                  <button type="button" onClick={() => setCurrentStep(4)} className="px-4 py-2 bg-white/10 text-white rounded-full hover:bg-white/20">Back</button>
+                  <button type="button" onClick={() => setCurrentStep(5)} className="px-4 py-2 bg-white/10 text-white rounded-full hover:bg-white/20">Back</button>
                   <button type="submit" className="px-4 py-2 bg-green-600 text-white font-bold rounded-full shadow-md hover:scale-[1.02] transition-transform">Create Character</button>
                 </div>
               </div>
@@ -652,7 +701,7 @@ export default function CreateCharacterPage() {
         <h1 className="text-2xl font-serif font-bold text-center text-dagger-gold">New Character</h1>
         
         <div className="flex justify-center gap-2 mb-4">
-          {Array.from({ length: 5 }).map((_, idx) => (
+          {Array.from({ length: 6 }).map((_, idx) => (
             <div key={idx} className={clsx(
               "w-6 h-2 rounded-full",
               idx + 1 === currentStep ? "bg-dagger-gold" : "bg-gray-700"
