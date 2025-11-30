@@ -28,14 +28,16 @@ npm run dev
 Access the app at `http://localhost:3000`.
 
 ### Database Setup (Supabase)
-1.  **Schema:** Run content of `supabase/schema.sql` in the Supabase SQL Editor to create tables (`profiles`, `characters`, `library`, etc.) and RLS policies.
+1.  **Schema:** Run content of `supabase/schema.sql` in the Supabase SQL Editor to create tables (e.g., `profiles`, `character_cards`, `character_inventory`) and their respective RLS policies. Note that the `public.library` and `public.characters` tables' creation and their RLS policies are now handled by the seed data script.
 2.  **Seed Data:**
-    *   The game data (classes, abilities) is stored in Markdown files in `srd/`.
-    *   To populate the database, run the parser script:
+    *   The game data (classes, abilities) is stored in JSON files in `srd/json/`.
+    *   To populate or re-populate the `public.library` table in the database, run the parser script:
         ```bash
-        node scripts/parse_srd.js
+        node scripts/parse_json_srd.js
         ```
-    *   This generates `supabase/seed_library.sql`. Run the contents of this file in your Supabase SQL Editor.
+    *   This generates `supabase/seed_library.sql`. **Always examine the output of `node scripts/parse_json_srd.js` for "Total entries" to ensure data was parsed correctly.** If "Total entries: 0" appears, it indicates an issue with the SRD JSON files or the script itself.
+    *   The generated `supabase/seed_library.sql` file will automatically include `DROP TABLE IF EXISTS` and `CREATE TABLE` statements along with their RLS policies for `public.characters` and `public.library` at the beginning, allowing for easy recreation, RLS setup, and repopulation of these tables during development.
+    *   **After generating the seed file, run the contents of `supabase/seed_library.sql` in your Supabase SQL Editor.** Always check the Supabase SQL Editor output for any errors during execution.
 
 ## 3. Architecture & Conventions
 
@@ -74,13 +76,13 @@ Access the app at `http://localhost:3000`.
 ## 4. Common Development Tasks
 
 ### Adding New Game Content (SRD)
-1.  Create or edit a Markdown file in the appropriate `srd/` subdirectory (e.g., `srd/abilities/NewAbility.md`).
-2.  Run `node scripts/parse_srd.js`.
-3.  Apply the generated `supabase/seed_library.sql` to your database.
+1.  Create or edit a JSON file in the appropriate `srd/json/` subdirectory (e.g., `srd/json/abilities.json`).
+2.  Run `node scripts/parse_json_srd.js`.
+3.  Apply the generated `supabase/seed_library.sql` to your database (refer to "Database Setup (Supabase) -> Seed Data" for detailed instructions).
 
-### modifying Database Schema
-1.  Edit `supabase/schema.sql` to reflect changes.
-2.  If changing `library` structure, update `scripts/parse_srd.js` to match the new columns.
+### Modifying Database Schema
+1.  Edit `supabase/schema.sql` to reflect changes (excluding the `public.characters` and `public.library` tables' schema or RLS policies).
+2.  If changing the `public.characters` or `public.library` tables' structure or RLS policies, update `scripts/parse_json_srd.js` to modify the respective `CREATE TABLE` statements and reflect new columns/types or RLS policies.
 3.  Update TypeScript interfaces in `store/character-store.ts`.
 
 ## 5. Style & Formatting

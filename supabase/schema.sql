@@ -11,54 +11,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. CHARACTERS
--- The core player sheet
-CREATE TABLE IF NOT EXISTS public.characters (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  name TEXT NOT NULL,
-  level INT DEFAULT 1 NOT NULL,
-  ancestry TEXT,
-  community TEXT,
-  class_id TEXT,
-  subclass_id TEXT,
-  stats JSONB DEFAULT '{
-    "agility": 0,
-    "strength": 0,
-    "finesse": 0,
-    "instinct": 0,
-    "presence": 0,
-    "knowledge": 0
-  }'::jsonb NOT NULL,
-  vitals JSONB DEFAULT '{
-    "hp_max": 6,
-    "hp_current": 6,
-    "stress_max": 6,
-    "stress_current": 0,
-    "armor_max": 0,
-    "armor_current": 0
-  }'::jsonb NOT NULL,
-  hope INT DEFAULT 2,
-  fear INT DEFAULT 0,
-  evasion INT DEFAULT 10,
-  proficiency INT DEFAULT 1,
-  experiences JSONB DEFAULT '[]'::jsonb,
-  gold JSONB DEFAULT '{"handfuls": 0, "bags": 0, "chests": 0}'::jsonb,
-  image_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 3. LIBRARY (The SRD Content)
-CREATE TABLE IF NOT EXISTS public.library (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
-  name TEXT NOT NULL,
-  domain TEXT,
-  tier INT,
-  data JSONB NOT NULL DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 -- 4. CHARACTER CARDS (The Loadout)
 CREATE TABLE IF NOT EXISTS public.character_cards (
@@ -139,19 +91,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Library RLS
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE c.relname = 'library' AND n.nspname = 'public') THEN
 
-    ALTER TABLE public.library ENABLE ROW LEVEL SECURITY;
-
-    EXECUTE 'DROP POLICY IF EXISTS "Library viewable by everyone" ON public.library';
-    CREATE POLICY "Library viewable by everyone" ON public.library FOR SELECT USING (true);
-  END IF;
-END;
-$$ LANGUAGE plpgsql;
 
 -- Character Cards RLS
 DO $$
@@ -168,7 +108,7 @@ BEGIN
 
     EXECUTE 'DROP POLICY IF EXISTS "Cards insertable by char owner" ON public.character_cards';
     CREATE POLICY "Cards insertable by char owner" ON public.character_cards FOR INSERT WITH CHECK (
-      EXISTS (SELECT 1 FROM public.characters WHERE id = character_id AND user_id = auth.uid())
+      EXISTS (SELECT 1 FROM public.characters WHERE id = character_id)
     );
 
     EXECUTE 'DROP POLICY IF EXISTS "Cards updatable by char owner" ON public.character_cards';

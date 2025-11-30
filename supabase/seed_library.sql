@@ -1,3 +1,93 @@
+DROP TABLE IF EXISTS public.characters CASCADE;
+
+-- 2. CHARACTERS
+-- The core player sheet
+CREATE TABLE IF NOT EXISTS public.characters (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  level INT DEFAULT 1 NOT NULL,
+  ancestry TEXT,
+  community TEXT,
+  class_id TEXT,
+  subclass_id TEXT,
+  stats JSONB DEFAULT '{
+    "agility": 0,
+    "strength": 0,
+    "finesse": 0,
+    "instinct": 0,
+    "presence": 0,
+    "knowledge": 0
+  }'::jsonb NOT NULL,
+  vitals JSONB DEFAULT '{
+    "hp_max": 6,
+    "hp_current": 6,
+    "stress_max": 6,
+    "stress_current": 0,
+    "armor_max": 0,
+    "armor_current": 0
+  }'::jsonb NOT NULL,
+  hope INT DEFAULT 2,
+  fear INT DEFAULT 0,
+  evasion INT DEFAULT 10,
+  proficiency INT DEFAULT 1,
+  experiences JSONB DEFAULT '[]'::jsonb,
+  gold JSONB DEFAULT '{"handfuls": 0, "bags": 0, "chests": 0}'::jsonb,
+  image_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Characters RLS and policies (moved from schema.sql for atomic seeding)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE c.relname = 'characters' AND n.nspname = 'public') THEN
+
+    ALTER TABLE public.characters ENABLE ROW LEVEL SECURITY;
+
+    EXECUTE 'DROP POLICY IF EXISTS "Characters viewable by owner" ON public.characters';
+    CREATE POLICY "Characters viewable by owner" ON public.characters FOR SELECT USING (auth.uid() = user_id);
+
+    EXECUTE 'DROP POLICY IF EXISTS "Characters insertable by owner" ON public.characters';
+    CREATE POLICY "Characters insertable by owner" ON public.characters FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+    EXECUTE 'DROP POLICY IF EXISTS "Characters updatable by owner" ON public.characters';
+    CREATE POLICY "Characters updatable by owner" ON public.characters FOR UPDATE USING (auth.uid() = user_id);
+
+    EXECUTE 'DROP POLICY IF EXISTS "Characters deletable by owner" ON public.characters';
+    CREATE POLICY "Characters deletable by owner" ON public.characters FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP TABLE IF EXISTS public.library CASCADE;
+
+CREATE TABLE IF NOT EXISTS public.library (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  domain TEXT,
+  tier INT,
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Library RLS (moved from schema.sql for atomic seeding)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE c.relname = 'library' AND n.nspname = 'public') THEN
+
+    ALTER TABLE public.library ENABLE ROW LEVEL SECURITY;
+
+    EXECUTE 'DROP POLICY IF EXISTS "Library viewable by everyone" ON public.library';
+    CREATE POLICY "Library viewable by everyone" ON public.library FOR SELECT USING (true);
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 INSERT INTO public.library (id, type, name, domain, tier, data) VALUES ('class-bard', 'class', 'Bard', NULL, NULL, '{"description":"Bards are the most charismatic people in all the realms. Members of this class are masters of captivation and specialize in a variety of performance types, including singing, playing musical instruments, weaving tales, or telling jokes. Whether performing for an audience or speaking to an individual, bards thrive in social situations. Members of this profession bond and train at schools or guilds, but a current of egotism runs through those of the bardic persuasion. While they may be the most likely class to bring people together, a bard of ill temper can just as easily tear a party apart.","starting_evasion":10,"starting_hp":5,"items_text":"A romance novel or a letter never opened","domains":["Grace","Codex"],"hope_feature":{"name":"Make a Scene","description":"Spend 3 Hope to temporarily Distract a target within Close range, giving them a -2 penalty to their Difficulty."},"class_features":[{"name":"Rally","text":"Once per session, describe how you rally the party and give yourself and each of your allies a Rally Die. At level 1, your Rally Die is a d6. A PC can spend their Rally Die to roll it, adding the result to their action roll, reaction roll, damage roll, or to clear a number of Stress equal to the result. At the end of each session, clear all unspent Rally Dice. At level 5, your Rally Die increases to a d8."}],"subclass_names":["Troubadour","Wordsmith"],"suggested":{"traits":"0, -1, +1, 0, +2, +1","primary_weapon":"Rapier","secondary_weapon":"Small Dagger","armor":"Gambeson Armor"},"background_questions":[{"question":"Who from your community taught you to have such confidence in yourself?"},{"question":"You were in love once. Who did you adore, and how did they hurt you?"},{"question":"You’ve always looked up to another bard. Who are they, and why do you idolize them?"}],"connection_questions":[{"question":"What made you realize we were going to be such good friends?"},{"question":"What do I do that annoys you?"},{"question":"Why do you grab my hand at night?"}]}'::jsonb) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, name = EXCLUDED.name, domain = EXCLUDED.domain, tier = EXCLUDED.tier;
 INSERT INTO public.library (id, type, name, domain, tier, data) VALUES ('class-druid', 'class', 'Druid', NULL, NULL, '{"description":"Becoming a druid is more than an occupation; it’s a calling for those who wish to learn from and protect the magic of the wilderness. While one might underestimate a gentle druid who practices the often-quiet work of cultivating flora, druids who channel the untamed forces of nature are terrifying to behold. Druids cultivate their abilities in small groups, often connected by a specific ethos or locale, but some choose to work alone. Through years of study and dedication, druids can learn to transform into beasts and shape nature itself.","starting_evasion":10,"starting_hp":6,"items_text":"A small bag of rocks and bones or a strange pendant found in the dirt","domains":["Sage","Arcana"],"hope_feature":{"name":"Evolution","description":"Spend 3 Hope to transform into a Beastform without marking a Stress. When you do, choose one trait to raise by +1 until you drop out of that Beastform."},"class_features":[{"name":"Beastform","text":"Mark a Stress to magically transform into a creature of your tier or lower from the Beastform list. You can drop out of this form at any time. While transformed, you can’t use weapons or cast spells from domain cards, but you can still use other features or abilities you have access to. Spells you cast before you transform stay active and last for their normal duration, and you can talk and communicate as normal. Additionally, you gain the Beastform’s features, add their Evasion bonus to your Evasion, and use the trait specified in their statistics for your attack. While you’re in a Beastform, your armor becomes part of your body and you mark Armor Slots as usual; when you drop out of a Beastform, those marked Armor Slots remain marked. If you mark your last Hit Point, you automatically drop out of this form."},{"name":"Wildtouch","text":"You can perform harmless, subtle effects that involve nature—such as causing a flower to rapidly grow, summoning a slight gust of wind, or starting a campfire—at will."}],"subclass_names":["Warden of the Elements","Warden of Renewal"],"suggested":{"traits":"+1, 0, +1, +2, -1, 0","primary_weapon":"Shortstaff","secondary_weapon":"Round Shield","armor":"Leather Armor"},"background_questions":[{"question":"Why was the community you grew up in so reliant on nature and its creatures?"},{"question":"Who was the first wild animal you bonded with? Why did your bond end?"},{"question":"Who has been trying to hunt you down? What do they want from you?"}],"connection_questions":[{"question":"What did you confide in me that makes me leap into danger for you every time?"},{"question":"What animal do I say you remind me of?"},{"question":"What affectionate nickname have you given me?"}]}'::jsonb) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, name = EXCLUDED.name, domain = EXCLUDED.domain, tier = EXCLUDED.tier;
 INSERT INTO public.library (id, type, name, domain, tier, data) VALUES ('class-guardian', 'class', 'Guardian', NULL, NULL, '{"description":"The title of guardian represents an array of martial professions, speaking more to their moral compass and unshakeable fortitude than the means by which they fight. While many guardians join groups of militants for either a country or cause, they’re more likely to follow those few they truly care for, majority be damned. Guardians are known for fighting with remarkable ferocity even against overwhelming odds, defending their cohort above all else. Woe betide those who harm the ally of a guardian, as the guardian will answer this injury in kind.","starting_evasion":9,"starting_hp":7,"items_text":"A totem from your mentor or a secret key","domains":["Valor","Blade"],"hope_feature":{"name":"Frontline Tank","description":"Spend 3 Hope to clear 2 Armor Slots."},"class_features":[{"name":"Unstoppable","text":"Once per long rest, you can become Unstoppable. You gain an Unstoppable Die. At level 1, your Unstoppable Die is a d4. Place it on your character sheet in the space provided, starting with the 1 value facing up. After you make a damage roll that deals 1 or more Hit Points to a target, increase the Unstoppable Die value by one. When the die’s value would exceed its maximum value or when the scene ends, remove the die and drop out of Unstoppable. At level 5, your Unstoppable Die increases to a d6.\n\nWhile Unstoppable, you gain the following benefits:\n\n- You reduce the severity of physical damage by one threshold (Severe to Major, Major to Minor, Minor to None).\n- You add the current value of the Unstoppable Die to your damage roll.\n- You can’t be Restrained or Vulnerable.\n\n> ***Tip:*** *If your Unstoppable Die is a d4 and the 4 is currently facing up, you remove the die the next time you would increase it. However, if your Unstoppable Die has increased to a d6 and the 4 is currently facing up, you’ll turn it to 5 the next time you would increase it. In this case, you’ll remove the die after you would need to increase it higher than 6.*"}],"subclass_names":["Stalwart","Vengeance"],"suggested":{"traits":"+1, +2, -1, 0, +1, 0","primary_weapon":"Battleaxe","armor":"Chainmail Armor"},"background_questions":[{"question":"Who from your community did you fail to protect, and why do you still think of them?"},{"question":"You’ve been tasked with protecting something important and delivering it somewhere dangerous. What is it, and where does it need to go?"},{"question":"You consider an aspect of yourself to be a weakness. What is it, and how has it affected you?"}],"connection_questions":[{"question":"How did I save your life the first time we met?"},{"question":"What small gift did you give me that you notice I always carry with me?"},{"question":"What lie have you told me about yourself that I absolutely believe?"}]}'::jsonb) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, name = EXCLUDED.name, domain = EXCLUDED.domain, tier = EXCLUDED.tier;

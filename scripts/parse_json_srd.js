@@ -280,7 +280,98 @@ try {
   
   linkSubclassesToClasses(); // Add the linking SQL at the end
   
-  fs.writeFileSync(OUTPUT_PATH, sqlOutput.join('\n'));
+  const header = `DROP TABLE IF EXISTS public.characters CASCADE;
+
+-- 2. CHARACTERS
+-- The core player sheet
+CREATE TABLE IF NOT EXISTS public.characters (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  level INT DEFAULT 1 NOT NULL,
+  ancestry TEXT,
+  community TEXT,
+  class_id TEXT,
+  subclass_id TEXT,
+  stats JSONB DEFAULT '{
+    "agility": 0,
+    "strength": 0,
+    "finesse": 0,
+    "instinct": 0,
+    "presence": 0,
+    "knowledge": 0
+  }'::jsonb NOT NULL,
+  vitals JSONB DEFAULT '{
+    "hp_max": 6,
+    "hp_current": 6,
+    "stress_max": 6,
+    "stress_current": 0,
+    "armor_max": 0,
+    "armor_current": 0
+  }'::jsonb NOT NULL,
+  hope INT DEFAULT 2,
+  fear INT DEFAULT 0,
+  evasion INT DEFAULT 10,
+  proficiency INT DEFAULT 1,
+  experiences JSONB DEFAULT '[]'::jsonb,
+  gold JSONB DEFAULT '{"handfuls": 0, "bags": 0, "chests": 0}'::jsonb,
+  image_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Characters RLS and policies (moved from schema.sql for atomic seeding)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE c.relname = 'characters' AND n.nspname = 'public') THEN
+
+    ALTER TABLE public.characters ENABLE ROW LEVEL SECURITY;
+
+    EXECUTE 'DROP POLICY IF EXISTS "Characters viewable by owner" ON public.characters';
+    CREATE POLICY "Characters viewable by owner" ON public.characters FOR SELECT USING (auth.uid() = user_id);
+
+    EXECUTE 'DROP POLICY IF EXISTS "Characters insertable by owner" ON public.characters';
+    CREATE POLICY "Characters insertable by owner" ON public.characters FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+    EXECUTE 'DROP POLICY IF EXISTS "Characters updatable by owner" ON public.characters';
+    CREATE POLICY "Characters updatable by owner" ON public.characters FOR UPDATE USING (auth.uid() = user_id);
+
+    EXECUTE 'DROP POLICY IF EXISTS "Characters deletable by owner" ON public.characters';
+    CREATE POLICY "Characters deletable by owner" ON public.characters FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP TABLE IF EXISTS public.library CASCADE;
+
+CREATE TABLE IF NOT EXISTS public.library (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  domain TEXT,
+  tier INT,
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Library RLS (moved from schema.sql for atomic seeding)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE c.relname = 'library' AND n.nspname = 'public') THEN
+
+    ALTER TABLE public.library ENABLE ROW LEVEL SECURITY;
+
+    EXECUTE 'DROP POLICY IF EXISTS "Library viewable by everyone" ON public.library';
+    CREATE POLICY "Library viewable by everyone" ON public.library FOR SELECT USING (true);
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+`;
+  fs.writeFileSync(OUTPUT_PATH, header + sqlOutput.join('\n'));
   console.log(`Successfully generated SQL seed at: ${OUTPUT_PATH}`);
   console.log(`Total entries: ${sqlOutput.length}`);
 } catch (e) {
