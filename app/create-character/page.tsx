@@ -75,6 +75,7 @@ export default function CreateCharacterPage() {
   // Initial trait assignment values as per Daggerheart rules
   const TRAIT_ASSIGNMENT_POOL = useMemo(() => [2, 1, 1, 0, 0, -1], []);
   const [availableTraitValues, setAvailableTraitValues] = useState<number[]>([]);
+  const [selectedTraitValue, setSelectedTraitValue] = useState<number | null>(null);
 
   useEffect(() => {
     setAvailableTraitValues([...TRAIT_ASSIGNMENT_POOL]);
@@ -267,7 +268,7 @@ export default function CreateCharacterPage() {
     const currentStats = { ...formData.stats! };
     // updatedAvailable must be 'let' as its value changes
     const updatedAvailable = [...availableTraitValues]; // Changed to const
-    
+
     // Add back the old assigned value to the pool if it was a valid trait pool value
     const oldAssignedValue = currentStats[statName];
     if (oldAssignedValue !== undefined && oldAssignedValue !== null && TRAIT_ASSIGNMENT_POOL.includes(oldAssignedValue)) {
@@ -285,6 +286,7 @@ export default function CreateCharacterPage() {
         updatedAvailable.splice(valueIndex, 1); // Remove from available
         setAvailableTraitValues(updatedAvailable); // Update available values state
         handleStatChange(statName, val); // Assign to form data
+        setSelectedTraitValue(null); // Clear selection after assignment
       } else if (!TRAIT_ASSIGNMENT_POOL.includes(val)) {
          setError(`Value ${val} is not a valid trait value.`);
       } else {
@@ -589,57 +591,93 @@ export default function CreateCharacterPage() {
             return (
               <div className="space-y-4">
                 <h2 className="text-xl font-bold font-serif flex items-center gap-2"><HandMetal size={20}/> Step 4: Assign Traits</h2>
-                <p className="text-sm text-gray-400">Drag and drop the available values to your traits. Remaining: ({availableTraitValues.length})</p>
+                <p className="text-sm text-gray-400">
+                  <span className="hidden md:inline">Drag and drop or click to select, then click a stat.</span>
+                  <span className="md:hidden">Tap a value, then tap a stat to assign.</span>
+                  {' '}Remaining: ({availableTraitValues.length})
+                </p>
                 <div className="flex justify-center flex-wrap gap-2 mb-4">
                     {availableTraitValues.map((val, index) => (
-                        <div key={index} 
-                             className="px-4 py-2 bg-blue-600 text-white rounded-full cursor-grab"
+                        <button
+                             key={index}
+                             type="button"
+                             className={clsx(
+                               "px-4 py-2 rounded-full cursor-pointer transition-all",
+                               selectedTraitValue === val
+                                 ? "bg-dagger-gold text-black ring-2 ring-dagger-gold ring-offset-2 ring-offset-dagger-dark scale-105 shadow-lg"
+                                 : "bg-blue-600 text-white hover:bg-blue-500 active:scale-95"
+                             )}
                              draggable
                              onDragStart={(e) => e.dataTransfer.setData("value", val.toString())}
+                             onClick={() => setSelectedTraitValue(val)}
                         >
                             {val >= 0 ? `+${val}` : val}
-                        </div>
+                        </button>
                     ))}
                 </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  {availableTraits.map(([stat, value]) => (
-                    <div 
-                      key={stat} 
-                      className="flex flex-col items-center justify-center bg-black/20 p-3 rounded-lg border border-white/5"
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const droppedValue = parseInt(e.dataTransfer.getData("value"));
-                        const oldAssignedValue = formData.stats![stat as keyof CharacterFormData['stats']];
-                        const updatedAvailable = [...availableTraitValues]; 
-                        if (oldAssignedValue !== 0 && oldAssignedValue !== undefined && oldAssignedValue !== null && TRAIT_ASSIGNMENT_POOL.includes(oldAssignedValue)) {
-                          updatedAvailable.push(oldAssignedValue);
-                        }
 
-                        const valueIndex = updatedAvailable.indexOf(droppedValue);
-                        if (valueIndex > -1) {
-                          updatedAvailable.splice(valueIndex, 1);
-                          setAvailableTraitValues(updatedAvailable);
-                          handleStatChange(stat as keyof CharacterFormData['stats'], droppedValue);
-                        } else {
-                            setError("Trait value already assigned or invalid.");
-                        }
-                      }}
-                    >
-                      <label className="capitalize text-sm text-gray-300">{stat}</label>
-                      <div className="text-3xl font-bold text-dagger-gold mt-1">
-                        {formData.stats![stat as keyof CharacterFormData['stats']] >= 0 ? `+${formData.stats![stat as keyof CharacterFormData['stats']]}` : formData.stats![stat as keyof CharacterFormData['stats']]}
-                      </div>
-                       <button 
-                         type="button"
-                         onClick={() => assignTraitValue(stat as keyof CharacterFormData['stats'], '')} 
-                         className="mt-2 text-red-400 text-xs hover:underline"
-                       >
-                         Clear
-                       </button>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 gap-3">
+                  {availableTraits.map(([stat, value]) => {
+                    const statValue = formData.stats![stat as keyof CharacterFormData['stats']];
+                    const isAssigned = statValue !== 0 && TRAIT_ASSIGNMENT_POOL.includes(statValue);
+
+                    return (
+                      <button
+                        type="button"
+                        key={stat}
+                        className={clsx(
+                          "flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all",
+                          isAssigned
+                            ? "bg-dagger-gold/10 border-dagger-gold shadow-md shadow-dagger-gold/20"
+                            : "bg-black/20 border-white/5 hover:border-white/20",
+                          selectedTraitValue !== null && "cursor-pointer hover:scale-105 active:scale-95"
+                        )}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const droppedValue = parseInt(e.dataTransfer.getData("value"));
+                          const oldAssignedValue = formData.stats![stat as keyof CharacterFormData['stats']];
+                          const updatedAvailable = [...availableTraitValues];
+                          if (oldAssignedValue !== 0 && oldAssignedValue !== undefined && oldAssignedValue !== null && TRAIT_ASSIGNMENT_POOL.includes(oldAssignedValue)) {
+                            updatedAvailable.push(oldAssignedValue);
+                          }
+
+                          const valueIndex = updatedAvailable.indexOf(droppedValue);
+                          if (valueIndex > -1) {
+                            updatedAvailable.splice(valueIndex, 1);
+                            setAvailableTraitValues(updatedAvailable);
+                            handleStatChange(stat as keyof CharacterFormData['stats'], droppedValue);
+                            setSelectedTraitValue(null);
+                          } else {
+                              setError("Trait value already assigned or invalid.");
+                          }
+                        }}
+                        onClick={() => {
+                          if (selectedTraitValue !== null) {
+                            assignTraitValue(stat as keyof CharacterFormData['stats'], selectedTraitValue);
+                          }
+                        }}
+                      >
+                        <label className="capitalize text-sm text-gray-300 pointer-events-none">{stat}</label>
+                        <div className={clsx(
+                          "text-3xl font-bold mt-1 pointer-events-none",
+                          isAssigned ? "text-dagger-gold" : "text-gray-500"
+                        )}>
+                          {statValue >= 0 ? `+${statValue}` : statValue}
+                        </div>
+                         <button
+                           type="button"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             assignTraitValue(stat as keyof CharacterFormData['stats'], '');
+                           }}
+                           className="mt-2 text-red-400 text-xs hover:underline"
+                         >
+                           Clear
+                         </button>
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="flex justify-between mt-4">
                   <button type="button" onClick={() => setCurrentStep(3)} className="px-4 py-2 bg-white/10 text-white rounded-full hover:bg-white/20">Back</button>
@@ -730,7 +768,7 @@ export default function CreateCharacterPage() {
       default:
         return null;
     }
-  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, isSubmitting, setError]);
+  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, isSubmitting, setError, selectedTraitValue]);
 
 
   return (
