@@ -61,6 +61,14 @@ export default function CharacterSelectPage() {
     <MobileLayout>
       <div className="flex flex-col items-center justify-start h-full px-4 pt-4 pb-24">
         <h1 className="text-3xl font-serif font-bold mb-6 text-center">Select Your Character</h1>
+        <div className="mb-8 text-center">
+          <Button
+            onClick={() => router.push('/create-character')}
+            className="px-6 py-3 bg-dagger-gold text-black font-bold rounded-full shadow-lg hover:scale-105 transition-transform"
+          >
+            Create New Character
+          </Button>
+        </div>
         {characters.length === 0 ? (
           <p className="text-center text-gray-300">No characters found. Create one to get started!</p>
         ) : (
@@ -79,14 +87,6 @@ export default function CharacterSelectPage() {
             ))}
           </div>
         )}
-        <div className="mt-8 text-center">
-          <Button 
-            onClick={() => router.push('/create-character')}
-            className="px-6 py-3 bg-dagger-gold text-black font-bold rounded-full shadow-lg hover:scale-105 transition-transform"
-          >
-            Create New Character
-          </Button>
-        </div>
       </div>
     </MobileLayout>
   );
