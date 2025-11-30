@@ -131,6 +131,35 @@ export default function CombatView() {
           </div>
         </div>
       )}
+
+      {/* Class Features */}
+      {character.class_data && (
+        <div className="space-y-4 mt-6">
+          <h3 className="text-sm font-bold uppercase text-gray-500 tracking-wider flex items-center gap-2">
+            <Info size={16} /> Class Features
+          </h3>
+          
+          {/* Hope Feature */}
+          {character.class_data.data.hope_feature && (
+             <div className="bg-dagger-panel border border-dagger-gold/30 rounded-xl p-4 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-dagger-gold"></div>
+                <h4 className="font-serif font-bold text-dagger-gold mb-1 flex items-center gap-2">
+                  <Zap size={14} />
+                  {character.class_data.data.hope_feature.name}
+                </h4>
+                <p className="text-sm text-gray-300">{character.class_data.data.hope_feature.description}</p>
+             </div>
+          )}
+
+          {/* Core Class Features */}
+          {character.class_data.data.class_features?.map((feature: any, idx: number) => (
+            <div key={idx} className="bg-dagger-panel border border-white/10 rounded-xl p-4">
+              <h4 className="font-serif font-bold text-white mb-1">{feature.name}</h4>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap">{feature.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

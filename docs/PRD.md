@@ -48,11 +48,12 @@ The **Daggerheart Web Companion** is a digital character sheet application desig
 *   **Card State:**
     *   Tracking of **Action Tokens** placed on specific cards.
     *   Visual indication of **Exhausted** or active states.
-*   **Vault:**
-    *   Storage for inactive cards.
-    *   Mechanism to swap cards between Vault and Loadout (paying Stress cost where applicable).
+*   **Vault Management:**
+    *   **Storage:** Interface to browse inactive cards.
+    *   **Library Browser:** Ability to search and filter the standard SRD library (by Domain, Level, Type) to add cards to the character's vault.
+    *   **Loadout Management:** Mechanism to swap cards between Vault and Loadout.
 *   **Customization:**
-    *   **Upload Feature:** Users must be able to upload custom image files to create unique cards.
+    *   **Upload Feature:** Users must be able to upload custom image files (PNG/JPG) to create unique cards. These are stored in the user's personal collection and can be added to the Loadout like standard cards.
     *   **Dynamic Rendering:** System to render SRD text content onto a standardized card frame if no image is provided.
 
 ### 4.3 Dice Roller (The Tray)
@@ -121,11 +122,15 @@ The **Daggerheart Web Companion** is a digital character sheet application desig
 *   [x] Custom Image Upload for cards.
 
 ### Phase 2: Mobile Optimization & Persistence (Current Focus)
-*   [ ] **Schema Migration:** Implement Relational DB structure (Library vs. Character cards).
+*   [x] **Schema Migration:** Implement Relational DB structure (Library vs. Character cards).
+*   [x] **Data Seed:** Migrate from Markdown to robust JSON source for SRD data.
+*   [x] **Combat View:** Dedicated dashboard for Evasion, Armor, and Weapons.
 *   [ ] **Optimistic UI Hooks:** Refactor state management for instant feedback.
 *   [ ] **Mobile Layout Refactor:** Implement Bottom Navigation and Bottom Sheet drawers.
 *   [ ] **Transient Dice:** Refactor 3D roller to be an overlay.
 *   [ ] **Character Builder Wizard:** Step-by-step creation flow optimized for small screens.
+*   [ ] **Vault View:** Interface for browsing Library and managing Loadout/Vault state.
+*   [ ] **Custom Card Upload:** Integration with Supabase Storage for user-uploaded card images.
 
 ### Phase 3: Advanced Features (Future)
 *   [ ] **Multiplayer/P2P:** Real-time roll sharing with GM.

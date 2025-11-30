@@ -73,6 +73,7 @@ export interface Character {
   // Relations
   character_cards?: CharacterCard[];
   character_inventory?: CharacterInventoryItem[];
+  class_data?: LibraryItem; // Joined class data
 }
 
 export interface RollResult {
@@ -213,6 +214,20 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
     const libraryIds = new Set<string>();
     cardsData?.forEach((c: any) => libraryIds.add(c.card_id));
     inventoryData?.forEach((i: any) => { if(i.item_id) libraryIds.add(i.item_id); });
+    
+    // Add class_id if it exists
+    let classIdToFetch = null;
+    if (charData.class_id) {
+        // Assuming class_id stored in charData is actually the name (e.g., 'Bard') or partial ID
+        // Our library IDs are 'class-bard'. If charData.class_id is 'Bard', we might need to slugify.
+        // However, creating character saves the library NAME ('Bard').
+        // We need to find the library item where type='class' and name=charData.class_id
+        // OR we update create-character to save the ID.
+        // Given current state, let's try to find by ID 'class-[slug]' first.
+        const slug = charData.class_id.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+        classIdToFetch = `class-${slug}`;
+        libraryIds.add(classIdToFetch);
+    }
 
     // C. Fetch Library Items
     let libraryMap = new Map<string, LibraryItem>();
@@ -239,12 +254,15 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
         ...item,
         library_item: item.item_id ? libraryMap.get(item.item_id) : undefined
     })) || [];
+    
+    const classData = classIdToFetch ? libraryMap.get(classIdToFetch) : undefined;
 
 
     const fullCharacter = {
         ...charData,
         character_cards: enrichedCards,
         character_inventory: enrichedInventory,
+        class_data: classData,
         stats: typeof charData.stats === 'string' ? JSON.parse(charData.stats) : charData.stats,
         vitals: typeof charData.vitals === 'string' ? JSON.parse(charData.vitals) : charData.vitals,
         gold: typeof charData.gold === 'string' ? JSON.parse(charData.gold) : charData.gold,
