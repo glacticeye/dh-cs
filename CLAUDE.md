@@ -19,6 +19,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
+### Environment Setup
+1. Copy `.env.example` to `.env.local`
+2. Fill in your Supabase credentials and site URL
+3. Required environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+   - `NEXT_PUBLIC_SITE_URL` - Your site URL (localhost for dev, production URL for deployed)
+
 ### Core Commands
 ```bash
 npm install          # Install dependencies
@@ -111,6 +119,20 @@ npm run lint         # Run ESLint
 - Path alias: `@/*` maps to project root
 - Target: ES2017
 - Some type strictness temporarily relaxed in ESLint (see Lint Configuration section)
+
+## Deployment
+
+### Render Deployment
+When deploying to Render (or any other platform), set these environment variables:
+- `NEXT_PUBLIC_SUPABASE_URL` - Same as local
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Same as local
+- `NEXT_PUBLIC_SITE_URL` - Your production URL (e.g., `https://your-app.onrender.com`)
+
+### Supabase Configuration
+In your Supabase project settings (Authentication → URL Configuration):
+1. Set **Site URL** to match `NEXT_PUBLIC_SITE_URL`
+2. Add **Redirect URLs**: `https://your-app.onrender.com/auth/callback` (and localhost for dev)
+3. Ensure Google OAuth is configured with the correct redirect URIs
 
 ## Git Commit Configuration
 

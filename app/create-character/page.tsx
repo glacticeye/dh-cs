@@ -293,11 +293,13 @@ export default function CreateCharacterPage() {
   }, [formData.stats, availableTraitValues, handleStatChange, TRAIT_ASSIGNMENT_POOL]);
 
 
-  const handleExperienceChange = (index: number, value: string) => {
-    const newExperiences = [...(formData.experiences || ['', ''])] as [string, string];
-    newExperiences[index] = value;
-    setFormData(prev => ({ ...prev, experiences: newExperiences }));
-  };
+  const handleExperienceChange = useCallback((index: number, value: string) => {
+    setFormData(prev => {
+      const newExperiences = [...(prev.experiences || ['', ''])] as [string, string];
+      newExperiences[index] = value;
+      return { ...prev, experiences: newExperiences };
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -693,7 +695,7 @@ export default function CreateCharacterPage() {
       default:
         return null;
     }
-  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, setError]);
+  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, setError]);
 
 
   return (
