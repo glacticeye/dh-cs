@@ -4,15 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Daggerheart Web Companion is a mobile-first digital character sheet for the Daggerheart TTRPG. The app emphasizes a tactile, playful experience with card flipping animations, 3D dice rolling, and swipe gestures rather than traditional spreadsheet-style data management.
+**Daggerheart Web Companion** is a mobile-first, digital character sheet for the Daggerheart Tabletop RPG. It prioritizes a tactile, "toy-like" experience (card flipping, 3D dice rolling) over spreadsheet-style data management.
 
-**Key Technologies:**
-- Next.js 15 (App Router) with TypeScript
-- Tailwind CSS v4 for styling
-- Zustand for state management
-- Supabase (PostgreSQL + Auth)
-- Radix UI primitives (via shadcn/ui) + Framer Motion
-- `@3d-dice/dice-box` for 3D dice rolling (Three.js wrapper)
+**Prior to starting development, please review the Product Requirements Document (docs/PRD.md).**
+
+### Key Technologies
+- **Framework:** Next.js 15 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **State Management:** Zustand
+- **Backend:** Supabase (PostgreSQL + Auth)
+- **UI Library:** Radix UI (via shadcn/ui), Framer Motion
+- **3D:** `@3d-dice/dice-box` (Three.js wrapper)
 
 ## Development Commands
 
@@ -29,116 +32,85 @@ npm run lint         # Run ESLint
 - `@typescript-eslint/no-unused-vars`, `no-unused-vars`, and `@typescript-eslint/no-explicit-any` are temporarily off
 - **Before committing:** Lint and resolve ALL warnings and errors (per user's global instructions)
 
-### Database Setup
-1. Run `supabase/schema.sql` in Supabase SQL Editor to create tables and RLS policies
-2. Parse SRD data: `node scripts/parse_srd.js` (or `parse_json_srd.js` for JSON format)
-3. Run generated `supabase/seed_library.sql` in Supabase SQL Editor
+### Database Setup (Supabase)
+1. **Schema:** Run content of `supabase/schema.sql` in the Supabase SQL Editor to create tables (`profiles`, `characters`, `library`, etc.) and RLS policies
+2. **Seed Data:**
+   - The game data (classes, abilities) is stored in Markdown files in `srd/`
+   - To populate the database, run the parser script:
+     ```bash
+     node scripts/parse_srd.js
+     ```
+   - This generates `supabase/seed_library.sql`. Run the contents of this file in your Supabase SQL Editor
 
 ## Architecture
 
 ### Directory Structure
 - `app/` - Next.js App Router pages
-  - `(playground)/` - Main authenticated views (client, server, profile)
+  - `(playground)/` - Main authenticated application views
   - `auth/` - Authentication routes
-  - `create-character/` - Character creation flow
 - `components/`
-  - `ui/` - Reusable shadcn/ui primitives
-  - `views/` - Feature-specific views (character-view, combat-view, inventory-view, playmat-view)
-  - `daggerheart-app.tsx` - Main layout wrapper
-  - `dice-overlay.tsx` - 3D dice roller overlay
-  - `mobile-layout.tsx` - Mobile navigation shell
-- `srd/` - **Source of Truth** for game data (Markdown/JSON/CSV formats)
-- `store/` - Zustand global state (`character-store.ts`)
-- `lib/supabase/` - Supabase client/server utilities
-- `types/` - TypeScript type definitions
-- `scripts/` - Node.js data processing scripts
-- `supabase/` - SQL schemas and seed files
+  - `ui/` - Reusable primitives (shadcn/ui)
+  - `views/` - Feature-specific views (Character, Playmat, Inventory, Combat)
+  - `daggerheart-app.tsx` - Main layout wrapper for the game view
+- `srd/` - **Source of Truth** for game data. Markdown files organized by type (abilities, classes, etc.)
+- `store/` - Global state using Zustand (`character-store.ts`)
+- `scripts/` - Node.js scripts for data processing
+- `supabase/` - SQL schemas and seeds
 
-### Critical Data Flow Pattern: "Manual Join"
+### Data Flow Strategy
 
-This codebase uses a **two-step fetch pattern** to separate user data from library data:
-
-1. **Library Table** (`public.library`): Contains all game content (abilities, classes, items, etc.) as immutable reference data
-2. **User Data Tables** (`characters`, `character_cards`, `character_inventory`): Contains user-specific instances with foreign keys to `library`
-
-**How it works:**
-1. Fetch user's `character` record + related `character_cards` rows
-2. Extract all `card_id` values from `character_cards`
-3. Perform a second query to `library` to fetch the actual card definitions
-4. **Stitch together** in `store/character-store.ts` before updating Zustand state
-
-**Why:** Keeps RPG's highly relational data manageable without complex SQL joins on every read. Library content is immutable; user state (tokens, exhausted, custom images) lives in junction tables.
+1. **SRD Ingestion:** Markdown files are parsed → SQL Inserts → `library` table
+2. **Character Data:** Fetched from `characters` table
+3. **"Manual Join" Pattern:**
+   - The `library` table is separate from user data
+   - The frontend fetches the `character` + `character_cards`
+   - It extracts `card_id`s and performs a second fetch to `library` to get the actual card text/stats
+   - These are stitched together in `store/character-store.ts` before updating the state
+   - *Reasoning:* Keeps the highly relational nature of RPG data manageable without complex SQL joins on every read
 
 ### State Management (Zustand)
 
-- **`useCharacterStore`** (`store/character-store.ts`) is the single source of truth for the active character session
-- **Optimistic updates:** Vitals (HP, Stress, Armor) update immediately in UI while async Supabase request resolves in background
-- Store holds fully hydrated character data with library items stitched in via the manual join pattern
+- **`useCharacterStore`:** The single source of truth for the active session
+- **Optimistic Updates:** Vitals (HP, Stress) update immediately in the UI while the async request to Supabase resolves in the background
+
+### Mobile-First Design
+
+- The UI is optimized for portrait mobile usage
+- **Navigation:** Bottom bar for primary views
+- **Interaction:** Swipe gestures, tap-to-flip cards, and a "Floaty" Action Button (FAB) for rolling dice
+
+## Common Development Tasks
+
+### Adding New Game Content (SRD)
+1. Create or edit a Markdown file in the appropriate `srd/` subdirectory (e.g., `srd/abilities/NewAbility.md`)
+2. Run `node scripts/parse_srd.js`
+3. Apply the generated `supabase/seed_library.sql` to your database
+
+### Modifying Database Schema
+1. Edit `supabase/schema.sql` to reflect changes
+2. If changing `library` structure, update `scripts/parse_srd.js` to match the new columns
+3. Update TypeScript interfaces in `store/character-store.ts`
+
+## Style & Formatting
+
+- **Code Style:** Standard TypeScript/Prettier
+- **Components:** Functional components with named exports
+- **Naming:** `kebab-case` for files, `PascalCase` for components, `camelCase` for functions/variables
+- **CSS:** Utility-first (Tailwind). Custom colors (e.g., `dagger-dark`, `dagger-gold`) are defined in `app/globals.css`
+
+## Additional Technical Details
 
 ### Supabase Client/Server Split
-
 - `lib/supabase/client.ts` - Client-side Supabase client (browser)
 - `lib/supabase/server.ts` - Server-side Supabase client (SSR)
 - `lib/supabase/middleware.ts` - Session refresh middleware
 - `middleware.ts` - Applies session middleware to `/profile` and `/login` routes
 
-### SRD (System Reference Document) Data Pipeline
-
-**Source formats:** Markdown, JSON, or CSV files in `srd/` subdirectories
-
-**Processing:**
-1. Edit or add files in `srd/markdown/`, `srd/json/`, or `srd/csv/`
-2. Run `node scripts/parse_srd.js` (Markdown parser) or `node scripts/parse_json_srd.js` (JSON parser)
-3. Script generates `supabase/seed_library.sql` with INSERT statements
-4. Apply generated SQL to database
-
-**Important:** The `library` table schema must match the parser output. If schema changes, update both `supabase/schema.sql` and the relevant parser script.
-
-## UI/UX Patterns
-
-### Mobile-First Design
-- Optimized for portrait mobile (primary target)
-- Bottom navigation bar for primary views
-- Swipe gestures, tap-to-flip cards, FAB (Floating Action Button) for dice rolling
-- Custom Tailwind colors: `dagger-dark`, `dagger-gold`, etc. (defined in `app/globals.css`)
-
-### Component Conventions
-- Functional components with named exports
-- File naming: `kebab-case.tsx`
-- Component naming: `PascalCase`
-- Functions/variables: `camelCase`
-
-### Styling
-- **Utility-first Tailwind CSS** (v4)
-- Minimal custom CSS in `app/globals.css` for theme colors and dice-box styles
-- Use `cn()` utility from `lib/utils.ts` for conditional classes
-
-## TypeScript Configuration
-
+### TypeScript Configuration
 - **Strict mode enabled** (`tsconfig.json:7`)
 - Path alias: `@/*` maps to project root
 - Target: ES2017
 - Some type strictness temporarily relaxed in ESLint (see Lint Configuration section)
-
-## Common Patterns
-
-### Adding New Game Content
-1. Create/edit file in `srd/markdown/[type]/` or `srd/json/[type]/`
-2. Run parser: `node scripts/parse_srd.js` or `node scripts/parse_json_srd.js`
-3. Apply `supabase/seed_library.sql` to database
-4. Content automatically available via library queries
-
-### Modifying Database Schema
-1. Update `supabase/schema.sql`
-2. If changing `library` table structure, update parser scripts to match new columns
-3. Update TypeScript interfaces in `store/character-store.ts` (`LibraryItem`, `Character`, etc.)
-4. Apply schema changes to Supabase
-
-### Working with Character Data
-- Always use `useCharacterStore` for character state
-- Perform optimistic UI updates for vitals (HP, Stress, Armor)
-- Remember the two-step fetch pattern: fetch user data, then fetch library data, then stitch
-- See `store/character-store.ts` for full interface definitions
 
 ## Git Commit Configuration
 
