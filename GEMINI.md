@@ -3,6 +3,8 @@
 ## 1. Project Overview
 **Daggerheart Web Companion** is a mobile-first, digital character sheet for the Daggerheart Tabletop RPG. It prioritizes a tactile, "toy-like" experience (card flipping, 3D dice rolling) over spreadsheet-style data management.
 
+Prior to starting development, please review the Product Requirements Document (docs/PRD.md).
+
 ### Key Technologies
 *   **Framework:** Next.js 15 (App Router)
 *   **Language:** TypeScript

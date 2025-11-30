@@ -28,7 +28,7 @@ export interface CharacterInventoryItem {
   item_id?: string; // Foreign key to library, nullable for custom items
   name: string;
   description?: string;
-  location: 'equipped_primary' | 'equipped_secondary' | 'armor' | 'backpack';
+  location: 'equipped_primary' | 'equipped_secondary' | 'armor' | 'equipped_armor' | 'backpack';
   quantity: number;
   library_item?: LibraryItem; // Joined data for the item itself
 }

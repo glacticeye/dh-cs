@@ -134,7 +134,8 @@ export default function CreateCharacterPage() {
         setCalculatedVitals({
           hp: selectedClass.data.starting_hp || 5,
           stress: selectedClass.data.starting_stress || 6,
-          armor: selectedClass.data.starting_armor_score || 0
+          armor: selectedClass.data.starting_armor_score || 0,
+          evasion: 10
         });
 
         const initialCards: string[] = [];
@@ -243,7 +244,7 @@ export default function CreateCharacterPage() {
         });
       }
     } else {
-      setCalculatedVitals({ hp: 0, stress: 0, armor: 0 });
+      setCalculatedVitals({ hp: 0, stress: 0, armor: 0, evasion: 10 });
       setStartingItemsAndCards({cards: [], weapons: [], armor: [], misc: [], gold: {handfuls: 0, bags: 0, chests: 0}});
     }
   }, [formData.class_id, formData.ancestry_id, libraryData]);
