@@ -101,9 +101,10 @@ interface CharacterState {
   closeDiceOverlay: () => void;
   prepareRoll: (label: string, modifier: number) => void;
   setLastRollResult: (result: RollResult) => void;
-  fetchCharacter: (userId: string) => Promise<void>;
-  fetchUser: () => Promise<void>; // Add fetchUser to interface
-  
+  fetchCharacter: (userId: string, characterId?: string) => Promise<void>;
+  fetchUser: () => Promise<void>;
+  switchCharacter: (characterId: string) => Promise<void>;
+
   updateVitals: (type: 'hp_current' | 'stress_current' | 'armor_current', value: number) => Promise<void>;
 }
 
@@ -157,22 +158,51 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
     }
   },
 
-  fetchCharacter: async (userId: string) => {
+  switchCharacter: async (characterId: string) => {
+    const state = get();
+    if (!state.user) {
+      console.error('Cannot switch character: no user logged in.');
+      return;
+    }
+    set({ isLoading: true });
+    await state.fetchCharacter(state.user.id, characterId);
+    set({ isLoading: false });
+  },
+
+  fetchCharacter: async (userId: string, characterId?: string) => {
     set({ isLoading: true });
     const supabase = createClient();
     
-    // 1. Fetch core character first
-    const { data: charData, error: charError } = await supabase
-      .from('characters')
-      .select('*')
-      .eq('user_id', userId)
-      .limit(1)
-      .maybeSingle();
+    let charData;
+    if (characterId) {
+      const { data, error } = await supabase
+        .from('characters')
+        .select('*')
+        .eq('id', characterId)
+        .eq('user_id', userId)
+        .maybeSingle();
       
-    if (charError) {
-      console.error('Error fetching character (core):', charError.message);
-      set({ isLoading: false, character: null });
-      return;
+      if (error) {
+        console.error('Error fetching specific character:', error.message);
+        set({ isLoading: false, character: null });
+        return;
+      }
+      charData = data;
+    } else {
+      // Fetch the first character for the user if no characterId is provided
+      const { data, error } = await supabase
+        .from('characters')
+        .select('*')
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching default character:', error.message);
+        set({ isLoading: false, character: null });
+        return;
+      }
+      charData = data;
     }
 
     if (!charData) {

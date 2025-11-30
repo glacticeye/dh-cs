@@ -15,14 +15,16 @@ export default function useUser() {
     async function fetchUser() {
       try {
         const {
-          data: { session },
+          data: { user },
           error,
-        } = await supabase.auth.getSession();
+        } = await supabase.auth.getUser();
         if (error) throw error;
 
-        if (session) {
+        if (user) {
+          setUser(user);
+          // Optionally fetch session separately if needed
+          const { data: { session } } = await supabase.auth.getSession();
           setSession(session);
-          setUser(session.user);
         }
       } catch (error) {
         setError(error as AuthError);

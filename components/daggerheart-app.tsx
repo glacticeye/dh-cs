@@ -20,17 +20,23 @@ export default function DaggerheartApp({ clientUser }: { clientUser: User | null
     // If we have a clientUser from the server, set it immediately
     if (clientUser) {
       setUser(clientUser);
-      // Then trigger the full fetchUser flow which checks/creates the profile and fetches the character
-      fetchUser().then(() => {
+      // Only fetch user/character if we don't already have a character loaded
+      // This prevents overwriting a character that was just selected
+      if (!character) {
+        // Then trigger the full fetchUser flow which checks/creates the profile and fetches the character
+        fetchUser().then(() => {
+          setInitialLoad(false);
+        });
+      } else {
         setInitialLoad(false);
-      });
+      }
     } else {
       // If no user, just clear state
       setUser(null);
       setCharacter(null);
       setInitialLoad(false);
     }
-  }, [clientUser, setUser, setCharacter, fetchUser]); // Added fetchUser to dependency array
+  }, [clientUser, setUser, setCharacter, fetchUser, character]); // Added character to dependency array
 
   if (isLoading || initialLoad) {
     return (

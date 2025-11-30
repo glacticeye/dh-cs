@@ -68,8 +68,9 @@ export default function CreateCharacterPage() {
     ancestries: [], communities: [], classes: [], subclasses: [], weapons: [], armor: [], consumables: [], abilities: [], spells: [], grimoires: []
   });
   // libraryLoading is used implicitly in JSX (libraryLoading ? ... : ...)
-  const [libraryLoading, setLibraryLoading] = useState(true); 
+  const [libraryLoading, setLibraryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initial trait assignment values as per Daggerheart rules
   const TRAIT_ASSIGNMENT_POOL = useMemo(() => [2, 1, 1, 0, 0, -1], []);
@@ -303,16 +304,21 @@ export default function CreateCharacterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setError(null);
 
     // Final validation
     if (!formData.name || !formData.ancestry_id || !formData.community_id || !formData.class_id || !formData.subclass_id) {
       setError("Please fill in all required fields.");
+      setIsSubmitting(false);
       return;
     }
     
     if (!formData.experiences || formData.experiences.some(exp => !exp.trim())) {
       setError("Please provide two starting experiences.");
+      setIsSubmitting(false);
       return;
     }
     
@@ -337,10 +343,30 @@ export default function CreateCharacterPage() {
 
     if (!allAssigned) {
       setError("Please assign all trait values from the pool.");
+      setIsSubmitting(false);
       return;
     }
 
     const supabase = createClient();
+
+    // Check character limit
+    const { count, error: countError } = await supabase
+      .from('characters')
+      .select('id', { count: 'exact' })
+      .eq('user_id', user.id);
+
+    if (countError) {
+      setError("Error checking character limit: " + countError.message);
+      console.error(countError);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (count && count >= 10) {
+      setError("You have reached the maximum of 10 characters. Please delete an existing character to create a new one.");
+      setIsSubmitting(false);
+      return;
+    }
 
     // Look up actual names for storage
     const selectedAncestryName = libraryData.ancestries.find(a => a.id === formData.ancestry_id)?.name;
@@ -383,6 +409,7 @@ export default function CreateCharacterPage() {
     if (charError) {
       setError("Error creating character: " + charError.message);
       console.error(charError);
+      setIsSubmitting(false);
       return;
     }
 
@@ -401,6 +428,7 @@ export default function CreateCharacterPage() {
       if (cardsError) {
         setError("Error adding starting cards: " + cardsError.message);
         console.error(cardsError);
+        setIsSubmitting(false);
         return;
       }
     }
@@ -466,6 +494,7 @@ export default function CreateCharacterPage() {
       if (inventoryError) {
         setError("Error adding starting inventory: " + inventoryError.message);
         console.error(inventoryError);
+        setIsSubmitting(false);
         return;
       }
     }
@@ -688,14 +717,20 @@ export default function CreateCharacterPage() {
                 </div>
                 <div className="flex justify-between mt-4">
                   <button type="button" onClick={() => setCurrentStep(5)} className="px-4 py-2 bg-white/10 text-white rounded-full hover:bg-white/20">Back</button>
-                  <button type="submit" className="px-4 py-2 bg-green-600 text-white font-bold rounded-full shadow-md hover:scale-[1.02] transition-transform">Create Character</button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-green-600 text-white font-bold rounded-full shadow-md hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {isSubmitting ? 'Creating...' : 'Create Character'}
+                  </button>
                 </div>
               </div>
             );
       default:
         return null;
     }
-  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, setError]);
+  }, [currentStep, formData, availableTraitValues, libraryData, calculatedVitals, startingItemsAndCards, TRAIT_ASSIGNMENT_POOL, handleInputChange, handleStatChange, assignTraitValue, handleExperienceChange, isSubmitting, setError]);
 
 
   return (

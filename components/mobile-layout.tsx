@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useCharacterStore } from '@/store/character-store';
-import { User, Layers, Backpack, Dices, Swords, LogOut } from 'lucide-react';
+import { User, Layers, Backpack, Dices, Swords, LogOut, ChevronDown } from 'lucide-react';
 import DiceOverlay from './dice-overlay';
 import clsx from 'clsx';
 import createClient from '@/lib/supabase/client';
@@ -31,9 +31,13 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
     <div className="flex flex-col h-[100dvh] bg-dagger-dark text-white overflow-hidden">
       {/* Header with character name and sign out */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-dagger-panel">
-        <h1 className="text-lg font-serif font-bold text-dagger-gold">
-          {character?.name || 'Daggerheart'}
-        </h1>
+        <button
+          onClick={() => router.push('/client/characters')}
+          className="flex items-center gap-2 text-lg font-serif font-bold text-dagger-gold hover:text-white transition-colors"
+        >
+          <h1>{character?.name || 'Daggerheart'}</h1>
+          <ChevronDown size={20} />
+        </button>
         <button
           onClick={handleSignOut}
           className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors"
