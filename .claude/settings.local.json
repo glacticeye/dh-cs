@@ -6,7 +6,8 @@
       "Bash(npm run lint)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(gh issue create:*)"
     ],
     "deny": [],
     "ask": []
