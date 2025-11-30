@@ -2,9 +2,11 @@
 
 import React from 'react';
 import { useCharacterStore } from '@/store/character-store';
-import { User, Layers, Backpack, Dices, Swords } from 'lucide-react';
+import { User, Layers, Backpack, Dices, Swords, LogOut } from 'lucide-react';
 import DiceOverlay from './dice-overlay';
 import clsx from 'clsx';
+import createClient from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 // Fix for no-explicit-any on NavButton props
 interface NavButtonProps {
@@ -15,10 +17,33 @@ interface NavButtonProps {
 }
 
 export default function MobileLayout({ children }: { children: React.ReactNode }) {
-  const { activeTab, setActiveTab, openDiceOverlay } = useCharacterStore();
+  const { activeTab, setActiveTab, openDiceOverlay, character } = useCharacterStore();
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth/login');
+    router.refresh();
+  };
 
   return (
     <div className="flex flex-col h-[100dvh] bg-dagger-dark text-white overflow-hidden">
+      {/* Header with character name and sign out */}
+      <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-dagger-panel">
+        <h1 className="text-lg font-serif font-bold text-dagger-gold">
+          {character?.name || 'Daggerheart'}
+        </h1>
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+          title="Sign Out"
+        >
+          <LogOut size={18} />
+          <span className="hidden sm:inline">Sign Out</span>
+        </button>
+      </header>
+
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto scrollbar-hide pb-24 px-4 pt-4">
         {children}

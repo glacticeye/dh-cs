@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AuthButton from "@/components/auth-buttons";
 
 import createClient from "@/lib/supabase/server";
 import { UserResponse } from "@supabase/supabase-js";
@@ -21,21 +22,27 @@ export default async function ProfilePage() {
         <CardHeader>
           <CardTitle>Profile</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <Avatar>
-            <AvatarImage
-              src={user.user_metadata.avatar_url}
-              alt={user.user_metadata.full_name}
-            />
-            <AvatarFallback>{userInitial}</AvatarFallback>
-          </Avatar>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Avatar>
+              <AvatarImage
+                src={user.user_metadata.avatar_url}
+                alt={user.user_metadata.full_name}
+              />
+              <AvatarFallback>{userInitial}</AvatarFallback>
+            </Avatar>
 
-          <p className="text-foreground truncate text-sm font-medium">
-            {user.user_metadata?.full_name || "User"}
-          </p>
-          <p className="text-muted-foreground truncate text-xs font-normal">
-            {displayEmail}
-          </p>
+            <p className="text-foreground truncate text-sm font-medium">
+              {user.user_metadata?.full_name || "User"}
+            </p>
+            <p className="text-muted-foreground truncate text-xs font-normal">
+              {displayEmail}
+            </p>
+          </div>
+
+          <div className="pt-4 border-t">
+            <AuthButton />
+          </div>
         </CardContent>
       </Card>
     </section>
